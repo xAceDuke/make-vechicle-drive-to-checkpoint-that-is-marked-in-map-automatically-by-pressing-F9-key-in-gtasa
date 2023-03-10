@@ -1,0 +1,56 @@
+{$CLEO}
+
+// Variables
+thread 'DriveToCheckpoint'
+{
+    // Wait for the game to load
+    wait 0
+
+    while true
+    {
+        // Check if the F9 key is pressed
+        if 0AB0:   key_pressed 120
+        {
+            // Get the current player's vehicle handle
+            00D6: if   and
+            01E1: car   parked     1@ 0 0 0 radius 4.0 4.0 4.0 sphere 0
+            00DF:   actor $PLAYER_ACTOR   driving_car
+            then
+            // Get the current checkpoint on the map
+            0AFA: get_active_interior_to $active_interior
+            0A8D: get_max_wanted_level_to $max_wanted
+            02A3: enable_widescreen 1
+            02A9: set_widescreen_bounds 0.0 0.0 100.0 100.0
+            03F0: enable_text_draw 1
+            03E3: set_texture_to_be_drawn_antialiased 0
+            0340: set_text_draw_RGBA 255 255 255 255
+            033E: set_draw_text_position 0.0 0.0 GXT 'NULL'
+            0AB1: call_scm_func @get_marker_coords_for_vehicle $tmpVar1 $tmpVar2 $tmpVar3
+            03F4: set_all_cars_apply_damage_rules 0
+            03A8: set_car $PLAYER_CAR apply_damage_rules 0
+            // Drive the vehicle to the checkpoint
+            04C4: store_coords_to 3@ 4@ 5@ from_car $PLAYER_CAR with_offset 6.0 0.0 0.0
+            036A: put_actor $PLAYER_ACTOR in_car $PLAYER_CAR
+            01C2: remove_references_to_car $PLAYER_CAR
+            01B4: set_player $PLAYER_CHAR can_use_enter_exit 0
+            03D5: set_car $PLAYER_CAR door_lock 2
+            01C3: remove_references_to_actor $PLAYER_ACTOR
+            03A9: save_newline_to_debug_file
+            // Wait for the vehicle to reach the checkpoint
+            wait 2000
+            while true
+            {
+                00D6: if   and
+                01E1: car   parked     1@ 0 0 0 radius 4.0 4.0 4.0 sphere 0
+                00DF:   actor $PLAYER_ACTOR   driving_car
+                then
+                    0087:   $tmpVar6 = 1@ // Save vehicle handle to a temporary variable
+                    00BC:   text_highpriority   'GOAL'
+                    // Check if the vehicle has reached the checkpoint
+                    0109:   player $PLAYER_CHAR   in_sphere $tmpVar1 $tmpVar2 $tmpVar3 radius 4.0 4.0 4.0 sphere 1
+                    if
+                    {
+                        // Vehicle has reached the checkpoint
+                        01B4: set_player $PLAYER_CHAR can_use_enter_exit 1
+                        01C1: return_to_player_standard_mode
+                        04C2: put_actor $PLAYER_ACTOR in_car $tmpVar
